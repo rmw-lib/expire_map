@@ -1,28 +1,50 @@
 #![feature(trait_alias)]
 
-mod retry;
-
 use std::{
+  cmp::Ord,
   collections::BTreeMap,
+  fmt::Debug,
+  marker::Copy,
   sync::atomic::{AtomicU8, Ordering::Relaxed},
 };
 
-use atomic_traits::fetch::Add;
-use num_traits::bounds::UpperBounded;
 use parking_lot::RwLock;
 
-#[derive(Debug, Default)]
-pub struct ExpireMap<Id, Task, N = u8, AN = AtomicU8> {
-  map: RwLock<BTreeMap<N, Id>>,
-  task: RwLock<BTreeMap<Id, Task>>,
-  n: AN,
+mod retry;
+
+pub trait OnExpire {
+  fn on_expire(&mut self) -> u8;
 }
 
-pub trait Num = UpperBounded + From<u8> + Eq;
+pub trait Key = Copy + Ord + Debug;
+pub trait Task = Debug + OnExpire;
 
-impl<Id, Task, N: Num, AN: Add<Type = N>> ExpireMap<Id, Task, N, AN> {
-  pub fn compact(&self) {
-    let n = self.n.fetch_add(1u8.into(), Relaxed);
-    if n == 0.into() {}
+pub struct ExpireMap<K: Key, T: Task> {
+  pub li: [RwLock<Vec<K>>; u8::MAX as _],
+  pub task: RwLock<BTreeMap<K, T>>,
+  pub n: AtomicU8,
+}
+
+impl<K: Key, T: Task> ExpireMap<K, T> {
+  pub fn do_expire(&self) {
+    let n = self.n.fetch_add(1, Relaxed) as usize;
+    let li = self.li[n].read();
+    *self.li[0].write() = vec![];
+    for i in li.iter() {
+      if let Some(task) = self.task.write().get_mut(i) {
+        match task.on_expire() {
+          n => {}
+          0 => {
+            dbg!(&task);
+          }
+        }
+      }
+    }
+  }
+
+  pub fn add(&self, key: K, task: T, expire: u8) {
+    let mut li = self.li[self.n.load(Relaxed).wrapping_add(expire) as usize].write();
+    li.push(key);
+    self.task.write().insert(key, task);
   }
 }
