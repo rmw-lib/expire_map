@@ -1,6 +1,6 @@
 <!-- EDIT /Users/z/rmw/expire_map/README.md -->
 
-<h1 align="center"> expire_retry_map</h1>
+<h1 align="center"> expire_map</h1>
 <p align="center">
 <a href="#english-readme">English</a>
 |
@@ -19,7 +19,7 @@
 
 ### Link
 
-* [benchmark report log](https://rmw-lib.github.io/expire_retry_map/dev/bench/)
+* [benchmark report log](https://rmw-lib.github.io/expire_map/dev/bench/)
 
 ### About
 
@@ -41,7 +41,7 @@ rust 项目模板
 
 ### 相关连接
 
-* [性能评测日志](https://rmw-lib.github.io/expire_retry_map/dev/bench/)
+* [性能评测日志](https://rmw-lib.github.io/expire_map/dev/bench/)
 
 ### 关于
 

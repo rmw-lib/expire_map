@@ -1,6 +1,6 @@
 use anyhow::Error;
 use criterion::{criterion_group, criterion_main, Criterion};
-use expire_retry_map::add;
+use expire_map::add;
 use rand::Rng;
 
 fn criterion_benchmark(c: &mut Criterion) {

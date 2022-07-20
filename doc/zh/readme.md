@@ -6,7 +6,7 @@ rust 项目模板
 
 ### 相关连接
 
-* [性能评测日志](https://rmw-lib.github.io/expire_retry_map/dev/bench/)
+* [性能评测日志](https://rmw-lib.github.io/expire_map/dev/bench/)
 
 ### 关于
 
