@@ -1,0 +1,35 @@
+[package]
+name = "expire_map"
+version = "0.0.1"
+edition = "2021"
+authors = ["gcxfd <i@rmw.link>"]
+license = "Apache-2.0"
+description = ""
+repository = "https://github.com/rmw-lib/expire_map"
+readme = "README.md"
+keywords = ["expire_map"]
+
+[dependencies]
+
+[dev-dependencies]
+anyhow = "1.0.58"
+criterion = "0.3.6"
+rand = "0.8.5"
+
+[profile.bench]
+lto = true
+
+[[bench]]
+name = "main"
+harness = false
+# [[bin]]
+# bench = false
+# path = "src/main.rs"
+# name = "expire_map"
+# [profile.release]
+# lto = true
+# codegen-units = 1
+# debug-assertions = false
+# overflow-checks = false
+# opt-level = 3
+# panic = 'abort'

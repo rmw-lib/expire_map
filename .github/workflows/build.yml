@@ -1,0 +1,64 @@
+name: build
+
+on:
+  workflow_dispatch:
+  #schedule:
+  #  - cron: '59 0 * * *'
+  push:
+    branches: [ master ]
+    tags:
+      - "v*.*.*"
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    name: build
+    strategy:
+      matrix:
+        platform: [macos-latest,windows-latest,ubuntu-latest]
+        # platform: [windows-latest]
+        # platform: [macos-latest]
+        #python-version: [3.9]
+        #platform: [ubuntu-latest]
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: choco install upx
+        if: startsWith(matrix.platform, 'windows')
+        uses: crazy-max/ghaction-chocolatey@v2
+        with:
+          args: install upx
+
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 1
+          submodules: true
+
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+          cache: 'pip'
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          override: true
+          components: rust-src
+
+      - uses: Swatinem/rust-cache@v2
+      - name: build
+        shell: bash
+        run: |
+          pip3 install -r requirements.txt
+          ./build.xsh
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name : mdi
+          path : target/txz/*
+
+      - uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            target/txz/*
