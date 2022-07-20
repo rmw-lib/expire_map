@@ -1,13 +1,13 @@
 [package]
-name = "expire_map"
+name = "expire_retry_map"
 version = "0.0.1"
 edition = "2021"
 authors = ["gcxfd <i@rmw.link>"]
 license = "Apache-2.0"
 description = ""
-repository = "https://github.com/rmw-lib/expire_map"
+repository = "https://github.com/rmw-lib/expire_retry_map"
 readme = "README.md"
-keywords = ["expire_map"]
+keywords = ["expire_retry_map"]
 
 [dependencies]
 
@@ -25,7 +25,7 @@ harness = false
 # [[bin]]
 # bench = false
 # path = "src/main.rs"
-# name = "expire_map"
+# name = "expire_retry_map"
 # [profile.release]
 # lto = true
 # codegen-units = 1

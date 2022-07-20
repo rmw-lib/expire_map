@@ -4,7 +4,7 @@
 
 ### Link
 
-* [benchmark report log](https://rmw-lib.github.io/expire_map/dev/bench/)
+* [benchmark report log](https://rmw-lib.github.io/expire_retry_map/dev/bench/)
 
 ### About
 
