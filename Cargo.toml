@@ -10,6 +10,9 @@ readme = "README.md"
 keywords = ["expire_retry_map"]
 
 [dependencies]
+atomic-traits = "0.3.0"
+num-traits = "0.2.15"
+parking_lot = "0.12.1"
 
 [dev-dependencies]
 anyhow = "1.0.58"
