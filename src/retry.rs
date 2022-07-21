@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::{fmt::Debug, ops::Deref};
 
 use crate::{expire_map::Key, ExpireMap, OnExpire};
 
@@ -20,7 +20,7 @@ pub trait Caller {
 }
 
 #[derive(Debug, Default)]
-struct Retry<C: Caller> {
+pub struct Retry<C: Caller> {
   n: u8,
   caller: C,
 }
@@ -55,5 +55,12 @@ impl<K: Key, C: Caller + Debug> RetryMap<K, C> {
     self
       .expire
       .insert(key, Retry { n: retry, caller }, C::ttl());
+  }
+}
+
+impl<K: Key, C: Caller + Debug> Deref for RetryMap<K, C> {
+  type Target = ExpireMap<K, Retry<C>>;
+  fn deref(&self) -> &<Self as Deref>::Target {
+    &self.expire
   }
 }
