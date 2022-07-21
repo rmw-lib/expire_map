@@ -1,8 +1,8 @@
 #![feature(trait_alias)]
 #![feature(drain_filter)]
 
-mod crate::expire_map;
-pub use expire_map::{ExpireMap, OnExpire};
+mod expire_map;
+pub use crate::expire_map::{ExpireMap, OnExpire};
 
 #[cfg(feature = "retry")]
 mod retry;
