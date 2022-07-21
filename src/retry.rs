@@ -10,21 +10,27 @@ use crate::OnExpire;
 
 */
 
-pub trait Call {
+pub trait Caller {
+  /// Time-To-Live
+  fn ttl() -> u8;
   fn call(&self);
 }
 
 #[derive(Debug, Default)]
-pub struct Retry<C: Call> {
+pub struct Retry<C: Caller> {
   n: u8,
   caller: C,
 }
 
-impl<C: Call> OnExpire for Retry<C> {
+impl<C: Caller> OnExpire for Retry<C> {
   fn on_expire(&mut self) -> u8 {
     self.caller.call();
     let n = self.n.wrapping_sub(1);
-    self.n = n;
-    n
+    if n == 0 {
+      0
+    } else {
+      self.n = n;
+      C::ttl()
+    }
   }
 }
