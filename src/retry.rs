@@ -14,7 +14,7 @@ pub trait Call {
   fn call(&self);
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Retry<C: Call> {
   n: u8,
   caller: C,
