@@ -6,7 +6,9 @@
 
 > ~/examples/main.rs
 
-### ExpireMap 的使用可以参见 RetryMap 的实现
+### ExpireMap 使用演示
+
+ExpireMap 的使用可以参见 RetryMap 的实现
 
 > ~/src/retry.rs
 
