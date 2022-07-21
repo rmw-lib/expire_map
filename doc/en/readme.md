@@ -17,9 +17,3 @@ Output
 The use of ExpireMap can be seen in the RetryMap implementation
 
 > ~/src/retry.rs
-
-### About
-
-This project is part of **[rmw.link](//rmw.link)** Code Project
-
-![rmw.link logo](https://raw.githubusercontent.com/rmw-link/logo/master/rmw.red.bg.svg)
