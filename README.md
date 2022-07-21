@@ -33,7 +33,7 @@ This project is part of **[rmw.link](//rmw.link)** Code Project
 
 <!-- EDIT /Users/z/rmw/expire_map/doc/zh/readme.md -->
 
-rust 项目模板
+expire_map : 最大支持 256 个周期超时的字典。
 
 ### 使用
 

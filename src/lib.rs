@@ -1,41 +1,54 @@
 #![feature(trait_alias)]
+#![feature(drain_filter)]
 
 use std::{
-  cmp::Ord,
-  collections::BTreeMap,
+  cmp::Eq,
   fmt::Debug,
+  hash::Hash,
   marker::Copy,
   sync::atomic::{AtomicU8, Ordering::Relaxed},
 };
 
-use parking_lot::RwLock;
+use dashmap::{DashMap, DashSet};
 
 mod retry;
 
 pub trait OnExpire {
+  /// expire when return 0 else renew n duration
   fn on_expire(&mut self) -> u8;
 }
 
-pub trait Key = Copy + Ord + Debug;
+#[derive(Debug)]
+struct _Task<Task> {
+  expire_on: u8,
+  task: Task,
+}
+
+pub trait Key = Copy + Hash + Debug + Eq;
 pub trait Task = Debug + OnExpire;
 
+#[derive(Debug)]
 pub struct ExpireMap<K: Key, T: Task> {
-  pub li: [RwLock<Vec<K>>; u8::MAX as _],
-  pub task: RwLock<BTreeMap<K, T>>,
-  pub n: AtomicU8,
+  li: [DashSet<K>; u8::MAX as _],
+  task: DashMap<K, _Task<T>>,
+  n: AtomicU8,
 }
 
 impl<K: Key, T: Task> ExpireMap<K, T> {
   pub fn do_expire(&self) {
     let n = self.n.fetch_add(1, Relaxed) as usize;
-    let li = self.li[n].read();
-    *self.li[0].write() = vec![];
-    for i in li.iter() {
-      if let Some(task) = self.task.write().get_mut(i) {
-        match task.on_expire() {
-          n => {}
+    let li = &self.li[n];
+    for key in li.iter() {
+      li.remove(&key);
+      if let Some(mut t) = self.task.get_mut(&key) {
+        match t.task.on_expire() {
           0 => {
-            dbg!(&task);
+            self.task.remove(&key);
+          }
+          n => {
+            let n = self.n.load(Relaxed).wrapping_add(n);
+            t.expire_on = n;
+            self.li[n as usize].insert(*key);
           }
         }
       }
@@ -43,8 +56,8 @@ impl<K: Key, T: Task> ExpireMap<K, T> {
   }
 
   pub fn add(&self, key: K, task: T, expire: u8) {
-    let mut li = self.li[self.n.load(Relaxed).wrapping_add(expire) as usize].write();
-    li.push(key);
-    self.task.write().insert(key, task);
+    let n = self.n.load(Relaxed).wrapping_add(expire);
+    self.task.insert(key, _Task { expire_on: n, task });
+    self.li[n as usize].insert(key);
   }
 }

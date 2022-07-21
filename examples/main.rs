@@ -1,7 +1,12 @@
+#![feature(drain_filter)]
+
 use anyhow::Result;
-use expire_map::add;
 
 fn main() -> Result<()> {
-  dbg!(add(1, 2));
+  let mut v = vec![0, 1, 2];
+
+  v.drain_filter(|x| *x % 2 == 0);
+
+  dbg!(v);
   Ok(())
 }
