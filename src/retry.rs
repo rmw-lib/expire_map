@@ -15,8 +15,8 @@ use crate::{expire_map::Key, ExpireMap, OnExpire};
 pub trait Caller<K> {
   /// Time-To-Live
   fn ttl() -> u8;
-  fn call(&self, key: &K);
-  fn fail(&self, key: &K);
+  fn call(&mut self, key: &K);
+  fn fail(&mut self, key: &K);
 }
 
 #[derive(Debug, Default)]
@@ -59,7 +59,8 @@ impl<K: Key, C: Caller<K> + Debug> RetryMap<K, C> {
     }
   }
 
-  pub fn insert(&self, key: K, caller: C, retry: u8) {
+  pub fn insert(&self, key: K, mut caller: C, retry: u8) {
+    caller.call(&key);
     self
       .expire
       .insert(key, Retry { n: retry, caller }, C::ttl());

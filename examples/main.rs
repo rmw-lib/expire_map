@@ -17,12 +17,13 @@ struct Task {
 
 impl Caller<Task> for Msg {
   fn ttl() -> u8 {
-    2 // 超时时间是2秒
+    2 // 2 seconds timeout
   }
-  fn call(&self, task: &Task) {
+  fn call(&mut self, task: &Task) {
     dbg!(("call", task, &self.msg));
   }
-  fn fail(&self, task: &Task) {
+
+  fn fail(&mut self, task: &Task) {
     dbg!(("failed", task, &self.msg));
   }
 }
@@ -53,7 +54,7 @@ fn main() -> Result<()> {
     }
   });
 
-  msg.call(&task);
+  // will run call() when insert
   retry_map.insert(task, msg, retry_times);
 
   //dbg!(retry_map.get(&task).unwrap().value());

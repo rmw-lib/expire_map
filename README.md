@@ -43,12 +43,13 @@ struct Task {
 
 impl Caller<Task> for Msg {
   fn ttl() -> u8 {
-    2 // 超时时间是2秒
+    2 // 2 seconds timeout
   }
-  fn call(&self, task: &Task) {
+  fn call(&mut self, task: &Task) {
     dbg!(("call", task, &self.msg));
   }
-  fn fail(&self, task: &Task) {
+
+  fn fail(&mut self, task: &Task) {
     dbg!(("failed", task, &self.msg));
   }
 }
@@ -79,7 +80,7 @@ fn main() -> Result<()> {
     }
   });
 
-  msg.call(&task);
+  // will run call() when insert
   retry_map.insert(task, msg, retry_times);
 
   //dbg!(retry_map.get(&task).unwrap().value());
@@ -116,8 +117,8 @@ use crate::{expire_map::Key, ExpireMap, OnExpire};
 pub trait Caller<K> {
   /// Time-To-Live
   fn ttl() -> u8;
-  fn call(&self, key: &K);
-  fn fail(&self, key: &K);
+  fn call(&mut self, key: &K);
+  fn fail(&mut self, key: &K);
 }
 
 #[derive(Debug, Default)]
@@ -160,7 +161,8 @@ impl<K: Key, C: Caller<K> + Debug> RetryMap<K, C> {
     }
   }
 
-  pub fn insert(&self, key: K, caller: C, retry: u8) {
+  pub fn insert(&self, key: K, mut caller: C, retry: u8) {
+    caller.call(&key);
     self
       .expire
       .insert(key, Retry { n: retry, caller }, C::ttl());
@@ -216,12 +218,13 @@ struct Task {
 
 impl Caller<Task> for Msg {
   fn ttl() -> u8 {
-    2 // 超时时间是2秒
+    2 // 2 seconds timeout
   }
-  fn call(&self, task: &Task) {
+  fn call(&mut self, task: &Task) {
     dbg!(("call", task, &self.msg));
   }
-  fn fail(&self, task: &Task) {
+
+  fn fail(&mut self, task: &Task) {
     dbg!(("failed", task, &self.msg));
   }
 }
@@ -252,7 +255,7 @@ fn main() -> Result<()> {
     }
   });
 
-  msg.call(&task);
+  // will run call() when insert
   retry_map.insert(task, msg, retry_times);
 
   //dbg!(retry_map.get(&task).unwrap().value());
@@ -289,8 +292,8 @@ use crate::{expire_map::Key, ExpireMap, OnExpire};
 pub trait Caller<K> {
   /// Time-To-Live
   fn ttl() -> u8;
-  fn call(&self, key: &K);
-  fn fail(&self, key: &K);
+  fn call(&mut self, key: &K);
+  fn fail(&mut self, key: &K);
 }
 
 #[derive(Debug, Default)]
@@ -333,7 +336,8 @@ impl<K: Key, C: Caller<K> + Debug> RetryMap<K, C> {
     }
   }
 
-  pub fn insert(&self, key: K, caller: C, retry: u8) {
+  pub fn insert(&self, key: K, mut caller: C, retry: u8) {
+    caller.call(&key);
     self
       .expire
       .insert(key, Retry { n: retry, caller }, C::ttl());
