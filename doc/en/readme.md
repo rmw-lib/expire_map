@@ -8,6 +8,10 @@ Also, I implement RetryMap based on ExpireMap and can be used for network reques
 
 > ~/examples/main.rs
 
+Output
+
+> ~/out.txt
+
 ### ExpireMap usage demo
 
 The use of ExpireMap can be seen in the RetryMap implementation

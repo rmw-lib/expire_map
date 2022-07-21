@@ -95,6 +95,37 @@ fn main() -> Result<()> {
 ```
 
 
+Output
+
+[→ out.txt](out.txt)
+
+```txt
+cargo run --example main
+ Compiling expire_map v0.0.13 (/Users/z/rmw/expire_map)
+  Finished dev [unoptimized + debuginfo] target(s) in 1.37s
+   Running `/Users/z/rmw/expire_map/target/debug/examples/main`
+
+[examples/main.rs:24] cmd = "call 223.5.5.5:53#12345 [1, 2, 3]"
+1 true
+2 true
+3 true
+4 true
+5 true
+[examples/main.rs:24] cmd = "call 223.5.5.5:53#12345 [1, 2, 3]"
+6 true
+7 true
+[examples/main.rs:24] cmd = "call 223.5.5.5:53#12345 [1, 2, 3]"
+8 true
+9 true
+[examples/main.rs:24] cmd = "call 223.5.5.5:53#12345 [1, 2, 3]"
+[examples/main.rs:29] cmd = "fail 223.5.5.5:53#12345 [1, 2, 3]"
+10 false
+11 false
+12 false
+13 false
+```
+
+
 ### ExpireMap usage demo
 
 The use of ExpireMap can be seen in the RetryMap implementation
@@ -270,6 +301,37 @@ fn main() -> Result<()> {
   block_on(handle);
   Ok(())
 }
+```
+
+
+运行输出
+
+[→ out.txt](out.txt)
+
+```txt
+cargo run --example main
+ Compiling expire_map v0.0.13 (/Users/z/rmw/expire_map)
+  Finished dev [unoptimized + debuginfo] target(s) in 1.37s
+   Running `/Users/z/rmw/expire_map/target/debug/examples/main`
+
+[examples/main.rs:24] cmd = "call 223.5.5.5:53#12345 [1, 2, 3]"
+1 true
+2 true
+3 true
+4 true
+5 true
+[examples/main.rs:24] cmd = "call 223.5.5.5:53#12345 [1, 2, 3]"
+6 true
+7 true
+[examples/main.rs:24] cmd = "call 223.5.5.5:53#12345 [1, 2, 3]"
+8 true
+9 true
+[examples/main.rs:24] cmd = "call 223.5.5.5:53#12345 [1, 2, 3]"
+[examples/main.rs:29] cmd = "fail 223.5.5.5:53#12345 [1, 2, 3]"
+10 false
+11 false
+12 false
+13 false
 ```
 
 

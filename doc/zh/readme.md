@@ -6,6 +6,10 @@
 
 > ~/examples/main.rs
 
+运行输出
+
+> ~/out.txt
+
 ### ExpireMap 使用演示
 
 ExpireMap 的使用可以参见 RetryMap 的实现
