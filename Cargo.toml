@@ -4,10 +4,10 @@ version = "0.0.2"
 edition = "2021"
 authors = ["gcxfd <i@rmw.link>"]
 license = "Apache-2.0"
-description = ""
+description = "expire map and retry map"
 repository = "https://github.com/rmw-lib/expire_map"
 readme = "README.md"
-keywords = ["expire_map"]
+keywords = ["expire", "retry", "ttl"]
 
 [dependencies]
 array-macro = "2.1.5"
