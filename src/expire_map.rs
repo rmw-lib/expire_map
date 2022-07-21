@@ -3,11 +3,15 @@ use std::{
   fmt::Debug,
   hash::Hash,
   marker::Copy,
+  ops::{Deref, DerefMut},
   sync::atomic::{AtomicU8, Ordering::Relaxed},
 };
 
 use array_macro::array;
-use dashmap::{DashMap, DashSet};
+use dashmap::{
+  mapref::one::{Ref, RefMut},
+  DashMap, DashSet,
+};
 
 pub trait OnExpire {
   /// expire when return 0 else renew n duration
@@ -15,9 +19,22 @@ pub trait OnExpire {
 }
 
 #[derive(Debug)]
-struct _Task<Task> {
+pub struct _Task<Task> {
   expire_on: u8,
   task: Task,
+}
+
+impl<Task> DerefMut for _Task<Task> {
+  fn deref_mut(&mut self) -> &mut <Self as Deref>::Target {
+    &mut self.task
+  }
+}
+
+impl<Task> Deref for _Task<Task> {
+  type Target = Task;
+  fn deref(&self) -> &Self::Target {
+    &self.task
+  }
 }
 
 pub trait Key = Copy + Hash + Debug + Eq;
@@ -30,7 +47,13 @@ pub struct ExpireMap<K: Key, T: Task> {
   n: AtomicU8,
 }
 
-impl<K: Key, T: Task> ExpireMap<K, T> {
+impl<K: Key, T: Task> Default for ExpireMap<K, T> {
+  fn default() -> Self {
+    Self::new()
+  }
+}
+
+impl<'a, K: Key, T: Task> ExpireMap<K, T> {
   pub fn new() -> Self {
     Self {
       li: array![_=>DashSet::new();u8::MAX as usize],
@@ -57,6 +80,14 @@ impl<K: Key, T: Task> ExpireMap<K, T> {
         }
       }
     }
+  }
+
+  pub fn get(&'a self, key: &K) -> Option<Ref<'a, K, _Task<T>>> {
+    self.task.get(&key)
+  }
+
+  pub fn get_mut(&'a self, key: &K) -> Option<RefMut<'a, K, _Task<T>>> {
+    self.task.get_mut(&key)
   }
 
   pub fn remove(&self, key: K) {

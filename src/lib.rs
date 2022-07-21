@@ -8,4 +8,4 @@ pub use expire_map::{ExpireMap, OnExpire};
 mod retry;
 
 #[cfg(feature = "retry")]
-pub use retry::{Caller, Retry};
+pub use retry::{Caller, RetryMap};

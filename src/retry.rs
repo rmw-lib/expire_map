@@ -1,4 +1,6 @@
-use crate::OnExpire;
+use std::fmt::Debug;
+
+use crate::{expire_map::Key, ExpireMap, OnExpire};
 
 /*
    btree
@@ -18,7 +20,7 @@ pub trait Caller {
 }
 
 #[derive(Debug, Default)]
-pub struct Retry<C: Caller> {
+struct Retry<C: Caller> {
   n: u8,
   caller: C,
 }
@@ -34,5 +36,24 @@ impl<C: Caller> OnExpire for Retry<C> {
       self.n = n;
       C::ttl()
     }
+  }
+}
+
+#[derive(Debug, Default)]
+pub struct RetryMap<K: Key, C: Caller + Debug> {
+  expire: ExpireMap<K, Retry<C>>,
+}
+
+impl<K: Key, C: Caller + Debug> RetryMap<K, C> {
+  pub fn new() -> Self {
+    Self {
+      expire: ExpireMap::new(),
+    }
+  }
+
+  pub fn insert(&self, key: K, caller: C, retry: u8) {
+    self
+      .expire
+      .insert(key, Retry { n: retry, caller }, C::ttl());
   }
 }
