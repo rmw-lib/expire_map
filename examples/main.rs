@@ -15,7 +15,7 @@ impl Caller for Task {
     2
   }
   fn call(&self) {
-    dbg!(self);
+    dbg!(("call", self));
   }
   fn fail(&self) {
     dbg!(("failed", self));
@@ -36,10 +36,12 @@ fn main() -> Result<()> {
   let expireer = retry_map.expire.clone();
 
   let handle = spawn(async move {
+    let mut n = 0;
     loop {
       sleep(Duration::from_secs(1)).await;
       expireer.do_expire();
-      dbg!("do expire");
+      n += 1;
+      dbg!(format!("do expire {}", n));
     }
   });
 
