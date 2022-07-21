@@ -14,6 +14,7 @@ pub trait Caller {
   /// Time-To-Live
   fn ttl() -> u8;
   fn call(&self);
+  fn fail(&self);
 }
 
 #[derive(Debug, Default)]
@@ -27,6 +28,7 @@ impl<C: Caller> OnExpire for Retry<C> {
     self.caller.call();
     let n = self.n.wrapping_sub(1);
     if n == 0 {
+      self.caller.fail();
       0
     } else {
       self.n = n;
