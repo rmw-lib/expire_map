@@ -2,9 +2,11 @@
 
 <h1 align="center"> expire_map</h1>
 <p align="center">
-<a href="#english-readme">English</a>
+[English](#english-readme)
 |
-<a href="#中文说明 "> 中文说明 </a>
+[中文说明](#中文说明)
+|
+[![Api Doc](https://img.shields.io/badge/RUST-API%20DOC-blue?style=for-the-badge&logo=docs.rs&labelColor=333)](https://docs.rs/expire_map/latest/expire_map)
 </p>
 
 ---
