@@ -1,8 +1,10 @@
-expire_map : 最大支持 256 个周期超时的字典。
+expire_map : 最大支持 256 个周期超时的无锁字典。
+
+用于网络请求超时和重试。
 
 ### 使用
 
-> ./examples/main.rs
+> ~/examples/main.rs
 
 ### 相关连接
 

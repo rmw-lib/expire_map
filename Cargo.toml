@@ -23,6 +23,7 @@ lto = true
 [[bench]]
 name = "main"
 harness = false
+
 # [[bin]]
 # bench = false
 # path = "src/main.rs"
@@ -34,3 +35,5 @@ harness = false
 # overflow-checks = false
 # opt-level = 3
 # panic = 'abort'
+[features]
+socketaddr_task = []

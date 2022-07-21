@@ -1,6 +1,6 @@
 ### Use
 
-> ./examples/main.rs
+> ~/examples/main.rs
 
 ### Link
 

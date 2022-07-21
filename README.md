@@ -15,7 +15,23 @@
 
 ### Use
 
-> ./examples/main.rs
+[→ examples/main.rs](examples/main.rs)
+
+```rust
+#![feature(drain_filter)]
+
+use anyhow::Result;
+
+fn main() -> Result<()> {
+  let mut v = vec![0, 1, 2];
+
+  v.drain_filter(|x| *x % 2 == 0);
+
+  dbg!(v);
+  Ok(())
+}
+```
+
 
 ### Link
 
@@ -33,11 +49,29 @@ This project is part of **[rmw.link](//rmw.link)** Code Project
 
 <!-- EDIT /Users/z/rmw/expire_map/doc/zh/readme.md -->
 
-expire_map : 最大支持 256 个周期超时的字典。
+expire_map : 最大支持 256 个周期超时的无锁字典。
+
+用于网络请求超时和重试。
 
 ### 使用
 
-> ./examples/main.rs
+[→ examples/main.rs](examples/main.rs)
+
+```rust
+#![feature(drain_filter)]
+
+use anyhow::Result;
+
+fn main() -> Result<()> {
+  let mut v = vec![0, 1, 2];
+
+  v.drain_filter(|x| *x % 2 == 0);
+
+  dbg!(v);
+  Ok(())
+}
+```
+
 
 ### 相关连接
 
