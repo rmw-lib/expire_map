@@ -33,20 +33,6 @@ jobs:
       run: |
         cargo test -- --format=pretty --nocapture
 
-    - name: Run benchmark
-      run: |
-        cargo install cargo-criterion
-        cargo +nightly criterion --output-format bencher 2> >(tee -a criterion.log >&2)
-
-    - name: push benchmark github page
-      uses: benchmark-action/github-action-benchmark@v1
-      with:
-          tool: 'cargo'
-          output-file-path: criterion.log
-          comment-on-alert: true
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          auto-push: true
-
     - name: clippy
       uses: actions-rs/clippy-check@v1
       with:
