@@ -12,25 +12,25 @@ use crate::{expire_map::Key, ExpireMap, OnExpire};
 
 */
 
-pub trait Caller {
+pub trait Caller<K> {
   /// Time-To-Live
   fn ttl() -> u8;
-  fn call(&self);
-  fn fail(&self);
+  fn call(&self, key: &K);
+  fn fail(&self, key: &K);
 }
 
 #[derive(Debug, Default)]
-pub struct Retry<C: Caller> {
+pub struct Retry<C> {
   n: u8,
   caller: C,
 }
 
-impl<C: Caller> OnExpire for Retry<C> {
-  fn on_expire(&mut self) -> u8 {
-    self.caller.call();
+impl<K, C: Caller<K>> OnExpire<K> for Retry<C> {
+  fn on_expire(&mut self, key: &K) -> u8 {
+    self.caller.call(key);
     let n = self.n.wrapping_sub(1);
     if n == 0 {
-      self.caller.fail();
+      self.caller.fail(key);
       0
     } else {
       self.n = n;
@@ -40,11 +40,11 @@ impl<C: Caller> OnExpire for Retry<C> {
 }
 
 #[derive(Debug, Default, Clone)]
-pub struct RetryMap<K: Key, C: Caller + Debug> {
+pub struct RetryMap<K: Key, C: Caller<K> + Debug> {
   pub expire: ExpireMap<K, Retry<C>>,
 }
 
-impl<K: Key, C: Caller + Debug> RetryMap<K, C> {
+impl<K: Key, C: Caller<K> + Debug> RetryMap<K, C> {
   pub fn new() -> Self {
     Self {
       expire: ExpireMap::new(),
@@ -58,7 +58,7 @@ impl<K: Key, C: Caller + Debug> RetryMap<K, C> {
   }
 }
 
-impl<K: Key, C: Caller + Debug> Deref for RetryMap<K, C> {
+impl<K: Key, C: Caller<K> + Debug> Deref for RetryMap<K, C> {
   type Target = ExpireMap<K, Retry<C>>;
   fn deref(&self) -> &<Self as Deref>::Target {
     &self.expire

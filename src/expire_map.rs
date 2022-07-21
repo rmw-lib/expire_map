@@ -16,9 +16,9 @@ use dashmap::{
   DashMap, DashSet,
 };
 
-pub trait OnExpire {
+pub trait OnExpire<K> {
   /// expire when return 0 else renew n duration
-  fn on_expire(&mut self) -> u8;
+  fn on_expire(&mut self, key: &K) -> u8;
 }
 
 #[derive(Debug)]
@@ -41,23 +41,23 @@ impl<Task> Deref for _Task<Task> {
 }
 
 pub trait Key = Copy + Hash + Debug + Eq;
-pub trait Task = Debug + OnExpire;
+pub trait Task<K> = Debug + OnExpire<K>;
 
 const SIZE: usize = u8::MAX as usize + 1;
 
 #[derive(Debug)]
-pub struct Inner<K: Key, T: Task> {
+pub struct Inner<K: Key, T: Task<K>> {
   li: [DashSet<K>; SIZE],
   task: DashMap<K, _Task<T>>,
   n: AtomicU8,
 }
 
 #[derive(Debug, Default)]
-pub struct ExpireMap<K: Key, T: Task> {
+pub struct ExpireMap<K: Key, T: Task<K>> {
   inner: Arc<Inner<K, T>>,
 }
 
-impl<K: Key, T: Task> Clone for ExpireMap<K, T> {
+impl<K: Key, T: Task<K>> Clone for ExpireMap<K, T> {
   fn clone(&self) -> Self {
     Self {
       inner: self.inner.clone(),
@@ -65,7 +65,7 @@ impl<K: Key, T: Task> Clone for ExpireMap<K, T> {
   }
 }
 
-impl<K: Key, T: Task> ExpireMap<K, T> {
+impl<K: Key, T: Task<K>> ExpireMap<K, T> {
   pub fn new() -> Self {
     Self {
       inner: Arc::new(Inner::new()),
@@ -73,20 +73,20 @@ impl<K: Key, T: Task> ExpireMap<K, T> {
   }
 }
 
-impl<K: Key, T: Task> Deref for ExpireMap<K, T> {
+impl<K: Key, T: Task<K>> Deref for ExpireMap<K, T> {
   type Target = Inner<K, T>;
   fn deref(&self) -> &Self::Target {
     &self.inner
   }
 }
 
-impl<K: Key, T: Task> Default for Inner<K, T> {
+impl<K: Key, T: Task<K>> Default for Inner<K, T> {
   fn default() -> Self {
     Self::new()
   }
 }
 
-impl<'a, K: Key, T: Task> Inner<K, T> {
+impl<'a, K: Key, T: Task<K>> Inner<K, T> {
   pub fn new() -> Self {
     Self {
       li: array![_=>DashSet::new();SIZE],
@@ -103,7 +103,7 @@ impl<'a, K: Key, T: Task> Inner<K, T> {
 
       if {
         if let Some(mut t) = self.task.get_mut(&key) {
-          match t.task.on_expire() {
+          match t.task.on_expire(&key) {
             0 => true,
             n => {
               let n = self.n.load(Relaxed).wrapping_add(n);

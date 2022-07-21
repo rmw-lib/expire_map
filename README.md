@@ -35,15 +35,15 @@ struct Task {
   id: u16,
 }
 
-impl Caller for Msg {
+impl Caller<Task> for Msg {
   fn ttl() -> u8 {
     2 // 超时时间是2秒
   }
-  fn call(&self) {
-    dbg!(("call", self));
+  fn call(&self, task: &Task) {
+    dbg!(("call", task, self));
   }
-  fn fail(&self) {
-    dbg!(("failed", self));
+  fn fail(&self, task: &Task) {
+    dbg!(("failed", task, self));
   }
 }
 
@@ -63,20 +63,21 @@ fn main() -> Result<()> {
   let expireer = retry_map.expire.clone();
 
   let handle = spawn(async move {
-    let mut n = 0;
+    let mut do_expire = 0;
     loop {
       sleep(Duration::from_secs(1)).await;
       expireer.do_expire();
-      n += 1;
-      dbg!(format!("do expire {}", n));
+      do_expire += 1;
+      dbg!(do_expire);
     }
   });
 
+  msg.call(&task);
   retry_map.insert(task, msg, retry_times);
-  dbg!(retry_map.get(&task).unwrap().value());
-  dbg!(retry_map.get_mut(&task).unwrap().key());
 
-  retry_map.remove(task);
+  //dbg!(retry_map.get(&task).unwrap().value());
+  //dbg!(retry_map.get_mut(&task).unwrap().key());
+  //retry_map.remove(task);
 
   block_on(handle);
   Ok(())
@@ -126,15 +127,15 @@ struct Task {
   id: u16,
 }
 
-impl Caller for Msg {
+impl Caller<Task> for Msg {
   fn ttl() -> u8 {
     2 // 超时时间是2秒
   }
-  fn call(&self) {
-    dbg!(("call", self));
+  fn call(&self, task: &Task) {
+    dbg!(("call", task, self));
   }
-  fn fail(&self) {
-    dbg!(("failed", self));
+  fn fail(&self, task: &Task) {
+    dbg!(("failed", task, self));
   }
 }
 
@@ -154,20 +155,21 @@ fn main() -> Result<()> {
   let expireer = retry_map.expire.clone();
 
   let handle = spawn(async move {
-    let mut n = 0;
+    let mut do_expire = 0;
     loop {
       sleep(Duration::from_secs(1)).await;
       expireer.do_expire();
-      n += 1;
-      dbg!(format!("do expire {}", n));
+      do_expire += 1;
+      dbg!(do_expire);
     }
   });
 
+  msg.call(&task);
   retry_map.insert(task, msg, retry_times);
-  dbg!(retry_map.get(&task).unwrap().value());
-  dbg!(retry_map.get_mut(&task).unwrap().key());
 
-  retry_map.remove(task);
+  //dbg!(retry_map.get(&task).unwrap().value());
+  //dbg!(retry_map.get_mut(&task).unwrap().key());
+  //retry_map.remove(task);
 
   block_on(handle);
   Ok(())
