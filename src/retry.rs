@@ -1,3 +1,5 @@
+use crate::OnExpire;
+
 /*
    btree
    超时时间 id
@@ -8,11 +10,21 @@
 
 */
 
-pub trait Task {
-  fn run(&self) -> bool;
+pub trait Call {
+  fn call(&self);
 }
 
-pub struct Retry<T: Task, N = u8> {
-  n: N,
-  task: T,
+#[derive(Debug)]
+pub struct Retry<C: Call> {
+  n: u8,
+  caller: C,
+}
+
+impl<C: Call> OnExpire for Retry<C> {
+  fn on_expire(&mut self) -> u8 {
+    self.caller.call();
+    let n = self.n.wrapping_sub(1);
+    self.n = n;
+    n
+  }
 }
