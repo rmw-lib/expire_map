@@ -5,14 +5,19 @@ use async_std::task::{block_on, sleep, spawn};
 use expire_map::{Caller, RetryMap};
 
 #[derive(Debug)]
-struct Task {
-  addr: SocketAddrV4,
+struct Msg {
   msg: Box<[u8]>,
 }
 
-impl Caller for Task {
+#[derive(Debug, Copy, Clone, Eq, Hash, PartialEq)]
+struct Task {
+  addr: SocketAddrV4,
+  id: u16,
+}
+
+impl Caller for Msg {
   fn ttl() -> u8 {
-    2
+    2 // 超时时间是2秒
   }
   fn call(&self) {
     dbg!(("call", self));
@@ -23,14 +28,16 @@ impl Caller for Task {
 }
 
 fn main() -> Result<()> {
-  let task = Task {
-    addr: "223.5.5.5:53".parse()?,
+  let msg = Msg {
     msg: Box::from(&[1, 2, 3][..]),
   };
 
-  let retry_times = 3;
-  let task_id = 1;
+  let task = Task {
+    id: 12345,
+    addr: "223.5.5.5:53".parse()?,
+  };
 
+  let retry_times = 3; // 重试次数是3次
   let retry_map = RetryMap::new();
 
   let expireer = retry_map.expire.clone();
@@ -45,8 +52,11 @@ fn main() -> Result<()> {
     }
   });
 
-  retry_map.insert(task_id, task, retry_times);
-  dbg!(retry_map.get(&task_id).unwrap().value());
+  retry_map.insert(task, msg, retry_times);
+  dbg!(retry_map.get(&task).unwrap().value());
+  dbg!(retry_map.get_mut(&task).unwrap().key());
+
+  retry_map.remove(task);
 
   block_on(handle);
   Ok(())
