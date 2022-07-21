@@ -99,19 +99,17 @@ impl<'a, K: Key, T: Task<K>> Inner<K, T> {
     let n = self.n.fetch_add(1, Relaxed);
     let li = &self.li[n as usize];
     for key in li.iter() {
-      if {
-        if let Some(mut t) = self.task.get_mut(&key) {
-          match t.task.on_expire(&key) {
-            0 => true,
-            x => {
-              t.expire_on = n.wrapping_add(x);
-              self.li[t.expire_on as usize].insert(*key);
-              false
-            }
+      if if let Some(mut t) = self.task.get_mut(&key) {
+        match t.task.on_expire(&key) {
+          0 => true,
+          x => {
+            t.expire_on = n.wrapping_add(x);
+            self.li[t.expire_on as usize].insert(*key);
+            false
           }
-        } else {
-          false
         }
+      } else {
+        false
       } {
         self.task.remove(&key);
       }
@@ -121,11 +119,11 @@ impl<'a, K: Key, T: Task<K>> Inner<K, T> {
   }
 
   pub fn get(&'a self, key: &K) -> Option<Ref<'a, K, _Task<T>>> {
-    self.task.get(&key)
+    self.task.get(key)
   }
 
   pub fn get_mut(&'a self, key: &K) -> Option<RefMut<'a, K, _Task<T>>> {
-    self.task.get_mut(&key)
+    self.task.get_mut(key)
   }
 
   pub fn remove(&self, key: K) {
