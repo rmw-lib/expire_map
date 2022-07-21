@@ -20,11 +20,13 @@ impl Caller<Task> for Msg {
     2 // 2 seconds timeout
   }
   fn call(&mut self, task: &Task) {
-    dbg!(("call", task, &self.msg));
+    let cmd = format!("{} {}#{} {:?}", "call", task.addr, task.id, &self.msg);
+    dbg!(cmd);
   }
 
   fn fail(&mut self, task: &Task) {
-    dbg!(("failed", task, &self.msg));
+    let cmd = format!("{} {}#{} {:?}", "fail", task.addr, task.id, &self.msg);
+    dbg!(cmd);
   }
 }
 
