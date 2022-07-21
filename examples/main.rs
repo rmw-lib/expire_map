@@ -50,13 +50,14 @@ fn main() -> Result<()> {
       expireer.do_expire();
       do_expire += 1;
       let exist = expireer.get(&task).is_some();
-      dbg!((do_expire, exist));
+      println!("{} {}", do_expire, exist);
     }
   });
 
   // will run call() when insert
   retry_map.insert(task, msg, retry_times);
 
+  retry_map.renew(task, 5);
   //dbg!(retry_map.get(&task).unwrap().value());
   //dbg!(retry_map.get_mut(&task).unwrap().key());
   //retry_map.remove(task);

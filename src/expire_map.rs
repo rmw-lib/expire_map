@@ -133,6 +133,17 @@ impl<'a, K: Key, T: Task<K>> Inner<K, T> {
     }
   }
 
+  pub fn renew(&'a self, key: K, expire: u8) -> Option<RefMut<'a, K, _Task<T>>> {
+    let mut r = self.task.get_mut(&key);
+    if let Some(ref mut r) = r {
+      self.li[r.expire_on as usize].remove(&key);
+      let n = self.n.load(Relaxed).wrapping_add(expire);
+      self.li[n as usize].insert(key);
+      r.expire_on = n;
+    }
+    r
+  }
+
   pub fn insert(&self, key: K, task: T, expire: u8) {
     let n = self.n.load(Relaxed).wrapping_add(expire);
     self.task.insert(key, _Task { expire_on: n, task });
