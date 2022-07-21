@@ -39,9 +39,17 @@ impl<K, C: Caller<K>> OnExpire<K> for Retry<C> {
   }
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default)]
 pub struct RetryMap<K: Key, C: Caller<K> + Debug> {
   pub expire: ExpireMap<K, Retry<C>>,
+}
+
+impl<K: Key, C: Caller<K> + Debug> Clone for RetryMap<K, C> {
+  fn clone(&self) -> Self {
+    Self {
+      expire: self.expire.clone(),
+    }
+  }
 }
 
 impl<K: Key, C: Caller<K> + Debug> RetryMap<K, C> {

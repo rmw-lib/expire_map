@@ -15,7 +15,7 @@
 
 ### Use
 
-`expire_map` : lock-free dictionary supporting a maximum of 256 cycles timeout (internally implemented using dashmap).
+`expire_map` : High concurrency dictionary supporting a maximum of 256 cycles timeout (internally implemented using dashmap).
 
 Also, I implement RetryMap based on ExpireMap and can be used for network request timeouts and retries.
 
@@ -66,7 +66,7 @@ fn main() -> Result<()> {
   let retry_times = 3; // 重试次数是3次
   let retry_map = RetryMap::new();
 
-  let expireer = retry_map.expire.clone();
+  let expireer = retry_map.clone();
 
   let handle = spawn(async move {
     let mut do_expire = 0;
@@ -139,9 +139,17 @@ impl<K, C: Caller<K>> OnExpire<K> for Retry<C> {
   }
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default)]
 pub struct RetryMap<K: Key, C: Caller<K> + Debug> {
   pub expire: ExpireMap<K, Retry<C>>,
+}
+
+impl<K: Key, C: Caller<K> + Debug> Clone for RetryMap<K, C> {
+  fn clone(&self) -> Self {
+    Self {
+      expire: self.expire.clone(),
+    }
+  }
 }
 
 impl<K: Key, C: Caller<K> + Debug> RetryMap<K, C> {
@@ -179,7 +187,7 @@ This project is part of **[rmw.link](//rmw.link)** Code Project
 
 <!-- EDIT /Users/z/rmw/expire_map/doc/zh/readme.md -->
 
-`expire_map` : 最大支持 256 个周期超时的无锁字典（内部使用 dashmap 实现）。
+`expire_map` : 最大支持 256 个周期超时的高并发字典（内部使用 dashmap 实现）。
 
 同时，基于 ExpireMap 实现了 RetryMap，可以用于网络请求超时和重试。
 
@@ -230,7 +238,7 @@ fn main() -> Result<()> {
   let retry_times = 3; // 重试次数是3次
   let retry_map = RetryMap::new();
 
-  let expireer = retry_map.expire.clone();
+  let expireer = retry_map.clone();
 
   let handle = spawn(async move {
     let mut do_expire = 0;
@@ -303,9 +311,17 @@ impl<K, C: Caller<K>> OnExpire<K> for Retry<C> {
   }
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default)]
 pub struct RetryMap<K: Key, C: Caller<K> + Debug> {
   pub expire: ExpireMap<K, Retry<C>>,
+}
+
+impl<K: Key, C: Caller<K> + Debug> Clone for RetryMap<K, C> {
+  fn clone(&self) -> Self {
+    Self {
+      expire: self.expire.clone(),
+    }
+  }
 }
 
 impl<K: Key, C: Caller<K> + Debug> RetryMap<K, C> {

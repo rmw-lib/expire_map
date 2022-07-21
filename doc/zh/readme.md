@@ -1,4 +1,4 @@
-`expire_map` : 最大支持 256 个周期超时的无锁字典（内部使用 dashmap 实现）。
+`expire_map` : 最大支持 256 个周期超时的高并发字典（内部使用 dashmap 实现）。
 
 同时，基于 ExpireMap 实现了 RetryMap，可以用于网络请求超时和重试。
 

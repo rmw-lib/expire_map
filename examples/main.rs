@@ -40,7 +40,7 @@ fn main() -> Result<()> {
   let retry_times = 3; // 重试次数是3次
   let retry_map = RetryMap::new();
 
-  let expireer = retry_map.expire.clone();
+  let expireer = retry_map.clone();
 
   let handle = spawn(async move {
     let mut do_expire = 0;

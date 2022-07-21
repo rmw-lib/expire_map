@@ -1,6 +1,6 @@
 ### Use
 
-`expire_map` : lock-free dictionary supporting a maximum of 256 cycles timeout (internally implemented using dashmap).
+`expire_map` : High concurrency dictionary supporting a maximum of 256 cycles timeout (internally implemented using dashmap).
 
 Also, I implement RetryMap based on ExpireMap and can be used for network request timeouts and retries.
 
