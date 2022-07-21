@@ -101,11 +101,11 @@ This project is part of **[rmw.link](//rmw.link)** Code Project
 
 <!-- EDIT /Users/z/rmw/expire_map/doc/zh/readme.md -->
 
-expire_map : 最大支持 256 个周期超时的无锁字典。
+`expire_map` : 最大支持 256 个周期超时的无锁字典。
 
-用于网络请求超时和重试。
+同时，基于 ExpireMap 实现了 RetryMap，可以用于网络请求超时和重试。
 
-### 使用
+### RetryMap 使用演示
 
 [→ examples/main.rs](examples/main.rs)
 
@@ -177,9 +177,79 @@ fn main() -> Result<()> {
 ```
 
 
-### 相关连接
+### ExpireMap 的使用可以参见 RetryMap 的实现
 
-* [性能评测日志](https://rmw-lib.github.io/expire_map/dev/bench/)
+[→ src/retry.rs](src/retry.rs)
+
+```rust
+use std::{fmt::Debug, ops::Deref};
+
+use crate::{expire_map::Key, ExpireMap, OnExpire};
+
+/*
+   btree
+   超时时间 id
+   重试函数
+   重试次数
+   失败
+
+
+*/
+
+pub trait Caller<K> {
+  /// Time-To-Live
+  fn ttl() -> u8;
+  fn call(&self, key: &K);
+  fn fail(&self, key: &K);
+}
+
+#[derive(Debug, Default)]
+pub struct Retry<C> {
+  n: u8,
+  caller: C,
+}
+
+impl<K, C: Caller<K>> OnExpire<K> for Retry<C> {
+  fn on_expire(&mut self, key: &K) -> u8 {
+    self.caller.call(key);
+    let n = self.n.wrapping_sub(1);
+    if n == 0 {
+      self.caller.fail(key);
+      0
+    } else {
+      self.n = n;
+      C::ttl()
+    }
+  }
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct RetryMap<K: Key, C: Caller<K> + Debug> {
+  pub expire: ExpireMap<K, Retry<C>>,
+}
+
+impl<K: Key, C: Caller<K> + Debug> RetryMap<K, C> {
+  pub fn new() -> Self {
+    Self {
+      expire: ExpireMap::new(),
+    }
+  }
+
+  pub fn insert(&self, key: K, caller: C, retry: u8) {
+    self
+      .expire
+      .insert(key, Retry { n: retry, caller }, C::ttl());
+  }
+}
+
+impl<K: Key, C: Caller<K> + Debug> Deref for RetryMap<K, C> {
+  type Target = ExpireMap<K, Retry<C>>;
+  fn deref(&self) -> &<Self as Deref>::Target {
+    &self.expire
+  }
+}
+```
+
 
 ### 关于
 
