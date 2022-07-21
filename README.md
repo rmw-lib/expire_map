@@ -74,7 +74,8 @@ fn main() -> Result<()> {
       sleep(Duration::from_secs(1)).await;
       expireer.do_expire();
       do_expire += 1;
-      dbg!(do_expire);
+      let exist = expireer.get(&task).is_some();
+      dbg!((do_expire, exist));
     }
   });
 
@@ -246,7 +247,8 @@ fn main() -> Result<()> {
       sleep(Duration::from_secs(1)).await;
       expireer.do_expire();
       do_expire += 1;
-      dbg!(do_expire);
+      let exist = expireer.get(&task).is_some();
+      dbg!((do_expire, exist));
     }
   });
 
