@@ -96,19 +96,16 @@ impl<'a, K: Key, T: Task<K>> Inner<K, T> {
   }
 
   pub fn do_expire(&self) {
-    let n = self.n.fetch_add(1, Relaxed) as usize;
-    let li = &self.li[n];
+    let n = self.n.fetch_add(1, Relaxed);
+    let li = &self.li[n as usize];
     for key in li.iter() {
-      dbg!(0);
-
       if {
         if let Some(mut t) = self.task.get_mut(&key) {
           match t.task.on_expire(&key) {
             0 => true,
-            n => {
-              let n = self.n.load(Relaxed).wrapping_add(n);
-              t.expire_on = n;
-              self.li[n as usize].insert(*key);
+            x => {
+              t.expire_on = n.wrapping_add(x);
+              self.li[t.expire_on as usize].insert(*key);
               false
             }
           }
@@ -119,7 +116,7 @@ impl<'a, K: Key, T: Task<K>> Inner<K, T> {
         self.task.remove(&key);
       }
     }
-    // https://github.com/xacrimon/dashmap/issues/224 ， 因为没有 drain_filter，可能会导致一些内存泄露（iter和clear之间插入了新条目），但是当expire为固定时间，且间隔为秒的时候，理论上不可能出现这种问题，因为新插入的条目都是在n+expire，而清理的是n
+    // 因 dashmap 没有 drain_filter (https://github.com/xacrimon/dashmap/issues/224) ，可能会导致一些内存泄露（iter和clear之间插入了新条目），但是当expire大于1，且间隔为秒的时候，基本不可能泄露，因为新插入的条目都是在n+expire > n+1，对于我的场景，足够了
     li.clear();
   }
 
