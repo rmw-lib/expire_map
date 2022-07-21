@@ -20,10 +20,10 @@ impl Caller<Task> for Msg {
     2 // 超时时间是2秒
   }
   fn call(&self, task: &Task) {
-    dbg!(("call", task, self));
+    dbg!(("call", task, &self.msg));
   }
   fn fail(&self, task: &Task) {
-    dbg!(("failed", task, self));
+    dbg!(("failed", task, &self.msg));
   }
 }
 
