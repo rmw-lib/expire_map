@@ -59,7 +59,14 @@ impl<K: Key, T: Task> ExpireMap<K, T> {
     }
   }
 
-  pub fn add(&self, key: K, task: T, expire: u8) {
+  pub fn remove(&self, key: K) {
+    if let Some(t) = self.task.get(&key) {
+      self.li[t.expire_on as usize].remove(&key);
+      self.task.remove(&key);
+    }
+  }
+
+  pub fn insert(&self, key: K, task: T, expire: u8) {
     let n = self.n.load(Relaxed).wrapping_add(expire);
     self.task.insert(key, _Task { expire_on: n, task });
     self.li[n as usize].insert(key);
