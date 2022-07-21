@@ -1,0 +1,5 @@
+#!/bin/sh
+
+cargo fmt
+mdi
+git add -u
