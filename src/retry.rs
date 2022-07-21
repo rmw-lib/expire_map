@@ -39,9 +39,9 @@ impl<C: Caller> OnExpire for Retry<C> {
   }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct RetryMap<K: Key, C: Caller + Debug> {
-  expire: ExpireMap<K, Retry<C>>,
+  pub expire: ExpireMap<K, Retry<C>>,
 }
 
 impl<K: Key, C: Caller + Debug> RetryMap<K, C> {

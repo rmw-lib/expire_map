@@ -4,7 +4,10 @@ use std::{
   hash::Hash,
   marker::Copy,
   ops::{Deref, DerefMut},
-  sync::atomic::{AtomicU8, Ordering::Relaxed},
+  sync::{
+    atomic::{AtomicU8, Ordering::Relaxed},
+    Arc,
+  },
 };
 
 use array_macro::array;
@@ -40,23 +43,53 @@ impl<Task> Deref for _Task<Task> {
 pub trait Key = Copy + Hash + Debug + Eq;
 pub trait Task = Debug + OnExpire;
 
+const SIZE: usize = u8::MAX as usize + 1;
+
 #[derive(Debug)]
-pub struct ExpireMap<K: Key, T: Task> {
-  li: [DashSet<K>; u8::MAX as _],
+pub struct Inner<K: Key, T: Task> {
+  li: [DashSet<K>; SIZE],
   task: DashMap<K, _Task<T>>,
   n: AtomicU8,
 }
 
-impl<K: Key, T: Task> Default for ExpireMap<K, T> {
+#[derive(Debug, Default)]
+pub struct ExpireMap<K: Key, T: Task> {
+  inner: Arc<Inner<K, T>>,
+}
+
+impl<K: Key, T: Task> Clone for ExpireMap<K, T> {
+  fn clone(&self) -> Self {
+    Self {
+      inner: self.inner.clone(),
+    }
+  }
+}
+
+impl<K: Key, T: Task> ExpireMap<K, T> {
+  pub fn new() -> Self {
+    Self {
+      inner: Arc::new(Inner::new()),
+    }
+  }
+}
+
+impl<K: Key, T: Task> Deref for ExpireMap<K, T> {
+  type Target = Inner<K, T>;
+  fn deref(&self) -> &Self::Target {
+    &self.inner
+  }
+}
+
+impl<K: Key, T: Task> Default for Inner<K, T> {
   fn default() -> Self {
     Self::new()
   }
 }
 
-impl<'a, K: Key, T: Task> ExpireMap<K, T> {
+impl<'a, K: Key, T: Task> Inner<K, T> {
   pub fn new() -> Self {
     Self {
-      li: array![_=>DashSet::new();u8::MAX as usize],
+      li: array![_=>DashSet::new();SIZE],
       task: DashMap::new(),
       n: AtomicU8::new(0),
     }
@@ -66,20 +99,28 @@ impl<'a, K: Key, T: Task> ExpireMap<K, T> {
     let n = self.n.fetch_add(1, Relaxed) as usize;
     let li = &self.li[n];
     for key in li.iter() {
-      li.remove(&key);
-      if let Some(mut t) = self.task.get_mut(&key) {
-        match t.task.on_expire() {
-          0 => {
-            self.task.remove(&key);
+      dbg!(0);
+
+      if {
+        if let Some(mut t) = self.task.get_mut(&key) {
+          match t.task.on_expire() {
+            0 => true,
+            n => {
+              let n = self.n.load(Relaxed).wrapping_add(n);
+              t.expire_on = n;
+              self.li[n as usize].insert(*key);
+              false
+            }
           }
-          n => {
-            let n = self.n.load(Relaxed).wrapping_add(n);
-            t.expire_on = n;
-            self.li[n as usize].insert(*key);
-          }
+        } else {
+          false
         }
+      } {
+        self.task.remove(&key);
       }
     }
+    // https://github.com/xacrimon/dashmap/issues/224 ， 因为没有 drain_filter，可能会导致一些内存泄露（iter和clear之间插入了新条目），但是当expire为固定时间，且间隔为秒的时候，理论上不可能出现这种问题，因为新插入的条目都是在n+expire，而清理的是n
+    li.clear();
   }
 
   pub fn get(&'a self, key: &K) -> Option<Ref<'a, K, _Task<T>>> {
