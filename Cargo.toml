@@ -1,0 +1,39 @@
+[package]
+name = "expire_map"
+version = "0.0.17"
+edition = "2021"
+authors = ["gcxfd <i@rmw.link>"]
+license = "Apache-2.0"
+description = "expire map and retry map"
+repository = "https://github.com/rmw-lib/expire_map"
+readme = "README.md"
+keywords = ["expire", "retry", "ttl"]
+
+[dependencies]
+array-macro = "2.1.5"
+dashmap = "5.3.4"
+
+[dev-dependencies]
+anyhow = "1.0.58"
+
+[dev-dependencies.async-std]
+version = "1.12.0"
+features = ["unstable"]
+
+[profile.bench]
+lto = true
+
+# [[bin]]
+# bench = false
+# path = "src/main.rs"
+# name = "expire_map"
+# [profile.release]
+# lto = true
+# codegen-units = 1
+# debug-assertions = false
+# overflow-checks = false
+# opt-level = 3
+# panic = 'abort'
+[features]
+default = ["retry"]
+retry = []
