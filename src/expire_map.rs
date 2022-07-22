@@ -126,13 +126,10 @@ impl<'a, K: Key, T: Task<K>> Inner<K, T> {
     expire: u8,
   ) -> RefMut<'a, K, ExpireOn<T>> {
     loop {
-      match self.renew(key, expire) {
-        Some(r) => return r,
-        None => {
-          let task = create();
-          self.insert(key, task, expire);
-        }
+      if let Some(r) = self.renew(key, expire) {
+        return r;
       }
+      self.insert(key, create(), expire);
     }
   }
 
