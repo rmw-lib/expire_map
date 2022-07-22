@@ -1,29 +1,32 @@
 <!-- EDIT /Users/z/rmw/expire_map/README.md -->
 
-# expire_map
+expire_map
 
 <a href="https://docs.rs/expire_map"><img src="https://img.shields.io/badge/RUST-API%20DOC-blue?style=for-the-badge&logo=docs.rs&labelColor=333" alt="Api Doc"></a>
 
-[English](#english-readme) | [中文说明](#中文说明)
+[English](nglish-readme) | [中文说明](#中文说明)
 
 ---
 
-## English Readme
+#English Readme
 
 <!-- EDIT /Users/z/rmw/expire_map/doc/en/readme.md -->
 
-### Use
+##Use
 
 `expire_map` : High concurrency dictionary supporting a maximum of 256 cycles timeout (internally implemented using dashmap).
 
 Also, I implement RetryMap based on ExpireMap and can be used for network request timeouts and retries.
 
-### RetryMap usage demo
+##RetryMap usage demo
 
 [→ examples/main.rs](examples/main.rs)
 
 ```rust
-use std::{net::SocketAddrV4, time::Duration};
+use std::{
+  net::{Ipv4Addr, SocketAddrV4, UdpSocket},
+  time::Duration,
+};
 
 use anyhow::Result;
 use async_std::task::{block_on, sleep, spawn};
@@ -34,28 +37,39 @@ struct Msg {
   msg: Box<[u8]>,
 }
 
-#[derive(Debug, Copy, Clone, Eq, Hash, PartialEq)]
+#[derive(Copy, Clone, Eq, Hash, PartialEq)]
 struct Task {
   addr: SocketAddrV4,
   id: u16,
 }
 
-impl Caller<Task> for Msg {
+impl Caller<UdpSocket, Task> for Msg {
   fn ttl() -> u8 {
     2 // 2 seconds timeout
   }
-  fn call(&mut self, task: &Task) {
+
+  fn call(&mut self, udp: &UdpSocket, task: &Task) {
     let cmd = format!("{} {}#{} {:?}", "call", task.addr, task.id, &self.msg);
+    if let Err(err) = udp.send_to(
+      &[&task.id.to_le_bytes()[..], &self.msg[..]].concat(),
+      task.addr,
+    ) {
+      dbg!(err);
+    }
     dbg!(cmd);
   }
 
-  fn fail(&mut self, task: &Task) {
+  fn fail(&mut self, _: &UdpSocket, task: &Task) {
     let cmd = format!("{} {}#{} {:?}", "fail", task.addr, task.id, &self.msg);
     dbg!(cmd);
   }
 }
 
 fn main() -> Result<()> {
+  let udp = UdpSocket::bind(SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, 0))?;
+
+  let retry_map = RetryMap::new(udp);
+
   let msg = Msg {
     msg: Box::from(&[1, 2, 3][..]),
   };
@@ -66,7 +80,6 @@ fn main() -> Result<()> {
   };
 
   let retry_times = 3; // 重试次数是3次
-  let retry_map = RetryMap::new();
 
   let expireer = retry_map.clone();
 
@@ -124,14 +137,14 @@ Output
 ```
 
 
-### ExpireMap usage demo
+##ExpireMap usage demo
 
 The use of ExpireMap can be seen in the RetryMap implementation
 
 [→ src/retry.rs](src/retry.rs)
 
 ```rust
-use std::{default::Default, fmt::Debug, ops::Deref};
+use std::{default::Default, ops::Deref};
 
 use crate::{expire_map::Key, ExpireMap, OnExpire};
 
@@ -145,41 +158,40 @@ use crate::{expire_map::Key, ExpireMap, OnExpire};
 
 */
 
-pub trait Caller<K> {
+pub trait Caller<Ctx, K> {
   /// Time-To-Live
   fn ttl() -> u8;
-  fn call(&mut self, key: &K);
-  fn fail(&mut self, key: &K);
+  fn call(&mut self, ctx: &Ctx, key: &K);
+  fn fail(&mut self, ctx: &Ctx, key: &K);
 }
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 pub struct Retry<C> {
   n: u8,
   caller: C,
 }
 
-impl<K, C: Caller<K>> OnExpire<K> for Retry<C> {
-  fn on_expire(&mut self, key: &K) -> u8 {
+impl<Ctx, K, C: Caller<Ctx, K>> OnExpire<Ctx, K> for Retry<C> {
+  fn on_expire(&mut self, ctx: &Ctx, key: &K) -> u8 {
     let n = self.n.wrapping_sub(1);
     if n == 0 {
-      self.caller.fail(key);
+      self.caller.fail(ctx, key);
       0
     } else {
       self.n = n;
-      self.caller.call(key);
+      self.caller.call(ctx, key);
       C::ttl()
     }
   }
 }
 
-pub trait Task<K> = Caller<K> + Debug;
+pub trait Task<Ctx, K> = Caller<Ctx, K>;
 
-#[derive(Debug, Default)]
-pub struct RetryMap<K: Key, C: Task<K>> {
-  pub expire: ExpireMap<K, Retry<C>>,
+pub struct RetryMap<Ctx, K: Key, C: Task<Ctx, K>> {
+  pub expire: ExpireMap<Ctx, K, Retry<C>>,
 }
 
-impl<K: Key, C: Task<K>> Clone for RetryMap<K, C> {
+impl<Ctx, K: Key, C: Task<Ctx, K>> Clone for RetryMap<Ctx, K, C> {
   fn clone(&self) -> Self {
     Self {
       expire: self.expire.clone(),
@@ -187,23 +199,23 @@ impl<K: Key, C: Task<K>> Clone for RetryMap<K, C> {
   }
 }
 
-impl<K: Key, C: Task<K>> RetryMap<K, C> {
-  pub fn new() -> Self {
+impl<Ctx, K: Key, C: Task<Ctx, K>> RetryMap<Ctx, K, C> {
+  pub fn new(ctx: Ctx) -> Self {
     Self {
-      expire: ExpireMap::new(),
+      expire: ExpireMap::new(ctx),
     }
   }
 
   pub fn insert(&self, key: K, mut caller: C, retry: u8) {
-    caller.call(&key);
+    caller.call(&self.ctx, &key);
     self
       .expire
       .insert(key, Retry { n: retry, caller }, C::ttl());
   }
 }
 
-impl<K: Key, C: Task<K>> Deref for RetryMap<K, C> {
-  type Target = ExpireMap<K, Retry<C>>;
+impl<Ctx, K: Key, C: Task<Ctx, K>> Deref for RetryMap<Ctx, K, C> {
+  type Target = ExpireMap<Ctx, K, Retry<C>>;
   fn deref(&self) -> &<Self as Deref>::Target {
     &self.expire
   }
@@ -211,7 +223,7 @@ impl<K: Key, C: Task<K>> Deref for RetryMap<K, C> {
 ```
 
 
-### About
+##About
 
 This project is part of **[rmw.link](//rmw.link)** Code Project
 
@@ -219,7 +231,7 @@ This project is part of **[rmw.link](//rmw.link)** Code Project
 
 ---
 
-## 中文说明
+#中文说明
 
 <!-- EDIT /Users/z/rmw/expire_map/doc/zh/readme.md -->
 
@@ -227,12 +239,15 @@ This project is part of **[rmw.link](//rmw.link)** Code Project
 
 同时，基于 ExpireMap 实现了 RetryMap，可以用于网络请求超时和重试。
 
-### RetryMap 使用演示
+##RetryMap 使用演示
 
 [→ examples/main.rs](examples/main.rs)
 
 ```rust
-use std::{net::SocketAddrV4, time::Duration};
+use std::{
+  net::{Ipv4Addr, SocketAddrV4, UdpSocket},
+  time::Duration,
+};
 
 use anyhow::Result;
 use async_std::task::{block_on, sleep, spawn};
@@ -243,28 +258,39 @@ struct Msg {
   msg: Box<[u8]>,
 }
 
-#[derive(Debug, Copy, Clone, Eq, Hash, PartialEq)]
+#[derive(Copy, Clone, Eq, Hash, PartialEq)]
 struct Task {
   addr: SocketAddrV4,
   id: u16,
 }
 
-impl Caller<Task> for Msg {
+impl Caller<UdpSocket, Task> for Msg {
   fn ttl() -> u8 {
     2 // 2 seconds timeout
   }
-  fn call(&mut self, task: &Task) {
+
+  fn call(&mut self, udp: &UdpSocket, task: &Task) {
     let cmd = format!("{} {}#{} {:?}", "call", task.addr, task.id, &self.msg);
+    if let Err(err) = udp.send_to(
+      &[&task.id.to_le_bytes()[..], &self.msg[..]].concat(),
+      task.addr,
+    ) {
+      dbg!(err);
+    }
     dbg!(cmd);
   }
 
-  fn fail(&mut self, task: &Task) {
+  fn fail(&mut self, _: &UdpSocket, task: &Task) {
     let cmd = format!("{} {}#{} {:?}", "fail", task.addr, task.id, &self.msg);
     dbg!(cmd);
   }
 }
 
 fn main() -> Result<()> {
+  let udp = UdpSocket::bind(SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, 0))?;
+
+  let retry_map = RetryMap::new(udp);
+
   let msg = Msg {
     msg: Box::from(&[1, 2, 3][..]),
   };
@@ -275,7 +301,6 @@ fn main() -> Result<()> {
   };
 
   let retry_times = 3; // 重试次数是3次
-  let retry_map = RetryMap::new();
 
   let expireer = retry_map.clone();
 
@@ -333,14 +358,14 @@ fn main() -> Result<()> {
 ```
 
 
-### ExpireMap 使用演示
+##ExpireMap 使用演示
 
 ExpireMap 的使用可以参见 RetryMap 的实现
 
 [→ src/retry.rs](src/retry.rs)
 
 ```rust
-use std::{default::Default, fmt::Debug, ops::Deref};
+use std::{default::Default, ops::Deref};
 
 use crate::{expire_map::Key, ExpireMap, OnExpire};
 
@@ -354,41 +379,40 @@ use crate::{expire_map::Key, ExpireMap, OnExpire};
 
 */
 
-pub trait Caller<K> {
+pub trait Caller<Ctx, K> {
   /// Time-To-Live
   fn ttl() -> u8;
-  fn call(&mut self, key: &K);
-  fn fail(&mut self, key: &K);
+  fn call(&mut self, ctx: &Ctx, key: &K);
+  fn fail(&mut self, ctx: &Ctx, key: &K);
 }
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 pub struct Retry<C> {
   n: u8,
   caller: C,
 }
 
-impl<K, C: Caller<K>> OnExpire<K> for Retry<C> {
-  fn on_expire(&mut self, key: &K) -> u8 {
+impl<Ctx, K, C: Caller<Ctx, K>> OnExpire<Ctx, K> for Retry<C> {
+  fn on_expire(&mut self, ctx: &Ctx, key: &K) -> u8 {
     let n = self.n.wrapping_sub(1);
     if n == 0 {
-      self.caller.fail(key);
+      self.caller.fail(ctx, key);
       0
     } else {
       self.n = n;
-      self.caller.call(key);
+      self.caller.call(ctx, key);
       C::ttl()
     }
   }
 }
 
-pub trait Task<K> = Caller<K> + Debug;
+pub trait Task<Ctx, K> = Caller<Ctx, K>;
 
-#[derive(Debug, Default)]
-pub struct RetryMap<K: Key, C: Task<K>> {
-  pub expire: ExpireMap<K, Retry<C>>,
+pub struct RetryMap<Ctx, K: Key, C: Task<Ctx, K>> {
+  pub expire: ExpireMap<Ctx, K, Retry<C>>,
 }
 
-impl<K: Key, C: Task<K>> Clone for RetryMap<K, C> {
+impl<Ctx, K: Key, C: Task<Ctx, K>> Clone for RetryMap<Ctx, K, C> {
   fn clone(&self) -> Self {
     Self {
       expire: self.expire.clone(),
@@ -396,23 +420,23 @@ impl<K: Key, C: Task<K>> Clone for RetryMap<K, C> {
   }
 }
 
-impl<K: Key, C: Task<K>> RetryMap<K, C> {
-  pub fn new() -> Self {
+impl<Ctx, K: Key, C: Task<Ctx, K>> RetryMap<Ctx, K, C> {
+  pub fn new(ctx: Ctx) -> Self {
     Self {
-      expire: ExpireMap::new(),
+      expire: ExpireMap::new(ctx),
     }
   }
 
   pub fn insert(&self, key: K, mut caller: C, retry: u8) {
-    caller.call(&key);
+    caller.call(&self.ctx, &key);
     self
       .expire
       .insert(key, Retry { n: retry, caller }, C::ttl());
   }
 }
 
-impl<K: Key, C: Task<K>> Deref for RetryMap<K, C> {
-  type Target = ExpireMap<K, Retry<C>>;
+impl<Ctx, K: Key, C: Task<Ctx, K>> Deref for RetryMap<Ctx, K, C> {
+  type Target = ExpireMap<Ctx, K, Retry<C>>;
   fn deref(&self) -> &<Self as Deref>::Target {
     &self.expire
   }
@@ -420,7 +444,7 @@ impl<K: Key, C: Task<K>> Deref for RetryMap<K, C> {
 ```
 
 
-### 关于
+##关于
 
 本项目隶属于 **人民网络 ([rmw.link](//rmw.link))** 代码计划。
 

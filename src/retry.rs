@@ -1,4 +1,4 @@
-use std::{default::Default, fmt::Debug, ops::Deref};
+use std::{default::Default, ops::Deref};
 
 use crate::{expire_map::Key, ExpireMap, OnExpire};
 
@@ -12,41 +12,40 @@ use crate::{expire_map::Key, ExpireMap, OnExpire};
 
 */
 
-pub trait Caller<K> {
+pub trait Caller<Ctx, K> {
   /// Time-To-Live
   fn ttl() -> u8;
-  fn call(&mut self, key: &K);
-  fn fail(&mut self, key: &K);
+  fn call(&mut self, ctx: &Ctx, key: &K);
+  fn fail(&mut self, ctx: &Ctx, key: &K);
 }
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 pub struct Retry<C> {
   n: u8,
   caller: C,
 }
 
-impl<K, C: Caller<K>> OnExpire<K> for Retry<C> {
-  fn on_expire(&mut self, key: &K) -> u8 {
+impl<Ctx, K, C: Caller<Ctx, K>> OnExpire<Ctx, K> for Retry<C> {
+  fn on_expire(&mut self, ctx: &Ctx, key: &K) -> u8 {
     let n = self.n.wrapping_sub(1);
     if n == 0 {
-      self.caller.fail(key);
+      self.caller.fail(ctx, key);
       0
     } else {
       self.n = n;
-      self.caller.call(key);
+      self.caller.call(ctx, key);
       C::ttl()
     }
   }
 }
 
-pub trait Task<K> = Caller<K> + Debug;
+pub trait Task<Ctx, K> = Caller<Ctx, K>;
 
-#[derive(Debug, Default)]
-pub struct RetryMap<K: Key, C: Task<K>> {
-  pub expire: ExpireMap<K, Retry<C>>,
+pub struct RetryMap<Ctx, K: Key, C: Task<Ctx, K>> {
+  pub expire: ExpireMap<Ctx, K, Retry<C>>,
 }
 
-impl<K: Key, C: Task<K>> Clone for RetryMap<K, C> {
+impl<Ctx, K: Key, C: Task<Ctx, K>> Clone for RetryMap<Ctx, K, C> {
   fn clone(&self) -> Self {
     Self {
       expire: self.expire.clone(),
@@ -54,23 +53,23 @@ impl<K: Key, C: Task<K>> Clone for RetryMap<K, C> {
   }
 }
 
-impl<K: Key, C: Task<K>> RetryMap<K, C> {
-  pub fn new() -> Self {
+impl<Ctx, K: Key, C: Task<Ctx, K>> RetryMap<Ctx, K, C> {
+  pub fn new(ctx: Ctx) -> Self {
     Self {
-      expire: ExpireMap::new(),
+      expire: ExpireMap::new(ctx),
     }
   }
 
   pub fn insert(&self, key: K, mut caller: C, retry: u8) {
-    caller.call(&key);
+    caller.call(&self.ctx, &key);
     self
       .expire
       .insert(key, Retry { n: retry, caller }, C::ttl());
   }
 }
 
-impl<K: Key, C: Task<K>> Deref for RetryMap<K, C> {
-  type Target = ExpireMap<K, Retry<C>>;
+impl<Ctx, K: Key, C: Task<Ctx, K>> Deref for RetryMap<Ctx, K, C> {
+  type Target = ExpireMap<Ctx, K, Retry<C>>;
   fn deref(&self) -> &<Self as Deref>::Target {
     &self.expire
   }

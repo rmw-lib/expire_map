@@ -1,4 +1,7 @@
-use std::{net::SocketAddrV4, time::Duration};
+use std::{
+  net::{Ipv4Addr, SocketAddrV4, UdpSocket},
+  time::Duration,
+};
 
 use anyhow::Result;
 use async_std::task::{block_on, sleep, spawn};
@@ -9,28 +12,39 @@ struct Msg {
   msg: Box<[u8]>,
 }
 
-#[derive(Debug, Copy, Clone, Eq, Hash, PartialEq)]
+#[derive(Copy, Clone, Eq, Hash, PartialEq)]
 struct Task {
   addr: SocketAddrV4,
   id: u16,
 }
 
-impl Caller<Task> for Msg {
+impl Caller<UdpSocket, Task> for Msg {
   fn ttl() -> u8 {
     2 // 2 seconds timeout
   }
-  fn call(&mut self, task: &Task) {
+
+  fn call(&mut self, udp: &UdpSocket, task: &Task) {
     let cmd = format!("{} {}#{} {:?}", "call", task.addr, task.id, &self.msg);
+    if let Err(err) = udp.send_to(
+      &[&task.id.to_le_bytes()[..], &self.msg[..]].concat(),
+      task.addr,
+    ) {
+      dbg!(err);
+    }
     dbg!(cmd);
   }
 
-  fn fail(&mut self, task: &Task) {
+  fn fail(&mut self, _: &UdpSocket, task: &Task) {
     let cmd = format!("{} {}#{} {:?}", "fail", task.addr, task.id, &self.msg);
     dbg!(cmd);
   }
 }
 
 fn main() -> Result<()> {
+  let udp = UdpSocket::bind(SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, 0))?;
+
+  let retry_map = RetryMap::new(udp);
+
   let msg = Msg {
     msg: Box::from(&[1, 2, 3][..]),
   };
@@ -41,7 +55,6 @@ fn main() -> Result<()> {
   };
 
   let retry_times = 3; // 重试次数是3次
-  let retry_map = RetryMap::new();
 
   let expireer = retry_map.clone();
 

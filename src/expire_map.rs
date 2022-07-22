@@ -1,7 +1,6 @@
 use std::{
   cmp::Eq,
   default::Default,
-  fmt::Debug,
   hash::Hash,
   marker::Copy,
   ops::{Deref, DerefMut},
@@ -17,9 +16,9 @@ use dashmap::{
   DashMap, DashSet,
 };
 
-pub trait OnExpire<K> {
+pub trait OnExpire<Ctx, K> {
   /// expire when return 0 else renew n duration
-  fn on_expire(&mut self, key: &K) -> u8;
+  fn on_expire(&mut self, ctx: &Ctx, key: &K) -> u8;
 }
 
 #[derive(Debug)]
@@ -41,24 +40,23 @@ impl<Task> Deref for ExpireOn<Task> {
   }
 }
 
-pub trait Key = Copy + Hash + Debug + Eq;
-pub trait Task<K> = Debug + OnExpire<K>;
+pub trait Key = Copy + Hash + Eq;
+pub trait Task<Ctx, K> = OnExpire<Ctx, K>;
 
 const SIZE: usize = u8::MAX as usize + 1;
 
-#[derive(Debug)]
-pub struct Inner<K: Key, T: Task<K>> {
+pub struct Inner<Ctx, K: Key, T: Task<Ctx, K>> {
   li: [DashSet<K>; SIZE],
   task: DashMap<K, ExpireOn<T>>,
   n: AtomicU8,
+  pub ctx: Ctx,
 }
 
-#[derive(Debug, Default)]
-pub struct ExpireMap<K: Key, T: Task<K>> {
-  inner: Arc<Inner<K, T>>,
+pub struct ExpireMap<Ctx, K: Key, T: Task<Ctx, K>> {
+  inner: Arc<Inner<Ctx, K, T>>,
 }
 
-impl<K: Key, T: Task<K>> Clone for ExpireMap<K, T> {
+impl<Ctx, K: Key, T: Task<Ctx, K>> Clone for ExpireMap<Ctx, K, T> {
   fn clone(&self) -> Self {
     Self {
       inner: self.inner.clone(),
@@ -66,33 +64,28 @@ impl<K: Key, T: Task<K>> Clone for ExpireMap<K, T> {
   }
 }
 
-impl<K: Key, T: Task<K>> ExpireMap<K, T> {
-  pub fn new() -> Self {
+impl<Ctx, K: Key, T: Task<Ctx, K>> ExpireMap<Ctx, K, T> {
+  pub fn new(ctx: Ctx) -> Self {
     Self {
-      inner: Arc::new(Inner::new()),
+      inner: Arc::new(Inner::new(ctx)),
     }
   }
 }
 
-impl<K: Key, T: Task<K>> Deref for ExpireMap<K, T> {
-  type Target = Inner<K, T>;
+impl<Ctx, K: Key, T: Task<Ctx, K>> Deref for ExpireMap<Ctx, K, T> {
+  type Target = Inner<Ctx, K, T>;
   fn deref(&self) -> &Self::Target {
     &self.inner
   }
 }
 
-impl<K: Key, T: Task<K>> Default for Inner<K, T> {
-  fn default() -> Self {
-    Self::new()
-  }
-}
-
-impl<'a, K: Key, T: Task<K>> Inner<K, T> {
-  pub fn new() -> Self {
+impl<'a, Ctx, K: Key, T: Task<Ctx, K>> Inner<Ctx, K, T> {
+  pub fn new(ctx: Ctx) -> Self {
     Self {
       li: array![_=>DashSet::new();SIZE],
       task: DashMap::new(),
       n: AtomicU8::new(0),
+      ctx,
     }
   }
 
@@ -101,7 +94,7 @@ impl<'a, K: Key, T: Task<K>> Inner<K, T> {
     let li = &self.li[n as usize];
     for key in li.iter() {
       if if let Some(mut t) = self.task.get_mut(&key) {
-        match t.task.on_expire(&key) {
+        match t.task.on_expire(&self.ctx, &key) {
           0 => true,
           x => {
             t.expire_on = n.wrapping_add(x);
@@ -162,7 +155,7 @@ impl<'a, K: Key, T: Task<K>> Inner<K, T> {
 
 macro_rules! can_mut {
   ($ref:ident,$get:ident) => {
-    impl<'a, K: Key, T: Task<K>> Inner<K, T> {
+    impl<'a, Ctx, K: Key, T: Task<Ctx, K>> Inner<Ctx, K, T> {
       pub fn $get(&'a self, key: &K) -> Option<$ref<'a, K, ExpireOn<T>>> {
         self.task.$get(key)
       }

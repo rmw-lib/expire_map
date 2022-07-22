@@ -23,17 +23,17 @@ features = ["unstable"]
 [profile.bench]
 lto = true
 
-# [[bin]]
-# bench = false
-# path = "src/main.rs"
-# name = "expire_map"
-# [profile.release]
-# lto = true
-# codegen-units = 1
-# debug-assertions = false
-# overflow-checks = false
-# opt-level = 3
-# panic = 'abort'
+[[bin]]
+bench = false
+path = "src/main.rs"
+name = "expire_map"
+[profile.release]
+lto = true
+codegen-units = 1
+debug-assertions = false
+overflow-checks = false
+opt-level = 3
+panic = 'abort'
 [features]
 default = ["retry"]
 retry = []
