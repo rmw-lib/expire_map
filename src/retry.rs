@@ -2,16 +2,6 @@ use std::{default::Default, ops::Deref};
 
 use crate::{expire_map::Key, ExpireMap, OnExpire};
 
-/*
-   btree
-   超时时间 id
-   重试函数
-   重试次数
-   失败
-
-
-*/
-
 pub trait Caller<Ctx, K> {
   /// Time-To-Live
   fn ttl() -> u8;
