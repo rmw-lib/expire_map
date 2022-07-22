@@ -6,11 +6,11 @@ expire_map
 
 ---
 
-#English Readme
+# English Readme
 
 > ./doc/en/readme.md
 
-##About
+## About
 
 This project is part of **[rmw.link](//rmw.link)** Code Project
 
@@ -18,11 +18,11 @@ This project is part of **[rmw.link](//rmw.link)** Code Project
 
 ---
 
-#中文说明
+# 中文说明
 
 > ./doc/zh/readme.md
 
-##关于
+## 关于
 
 本项目隶属于 **人民网络 ([rmw.link](//rmw.link))** 代码计划。
 
