@@ -1,6 +1,5 @@
 use std::{
   cmp::Eq,
-  default::Default,
   hash::Hash,
   marker::Copy,
   ops::{Deref, DerefMut},
