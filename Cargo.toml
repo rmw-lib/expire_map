@@ -1,6 +1,6 @@
 [package]
 name = "expire_map"
-version = "0.0.17"
+version = "0.0.18"
 edition = "2021"
 authors = ["gcxfd <i@rmw.link>"]
 license = "Apache-2.0"
