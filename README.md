@@ -12,13 +12,13 @@
 
 <!-- EDIT /Users/z/rmw/expire_map/doc/en/readme.md -->
 
-##Use
+## Use
 
 `expire_map` : High concurrency dictionary supporting a maximum of 256 cycles timeout (internally implemented using dashmap).
 
 Also, I implement RetryMap based on ExpireMap and can be used for network request timeouts and retries.
 
-##RetryMap usage demo
+## RetryMap usage demo
 
 [→ examples/main.rs](examples/main.rs)
 
@@ -137,7 +137,7 @@ Output
 ```
 
 
-##ExpireMap usage demo
+## ExpireMap usage demo
 
 The use of ExpireMap can be seen in the RetryMap implementation
 
@@ -239,7 +239,7 @@ This project is part of **[rmw.link](//rmw.link)** Code Project
 
 同时，基于 ExpireMap 实现了 RetryMap，可以用于网络请求超时和重试。
 
-##RetryMap 使用演示
+## RetryMap 使用演示
 
 [→ examples/main.rs](examples/main.rs)
 
@@ -358,7 +358,7 @@ fn main() -> Result<()> {
 ```
 
 
-##ExpireMap 使用演示
+## ExpireMap 使用演示
 
 ExpireMap 的使用可以参见 RetryMap 的实现
 
