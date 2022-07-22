@@ -119,24 +119,21 @@ impl<'a, K: Key, T: Task<K>> Inner<K, T> {
     li.clear();
   }
 
-  pub fn get_or_create(&'a self, key: &K, create: impl Fn() -> (T, u8)) -> Ref<'a, K, ExpireOn<T>> {
+  pub fn renew_or_create(
+    &'a self,
+    key: K,
+    create: impl Fn() -> T,
+    expire: u8,
+  ) -> RefMut<'a, K, ExpireOn<T>> {
     loop {
-      match self.task.get(key) {
+      match self.renew(key, expire) {
         Some(r) => return r,
         None => {
-          let (task, expire) = create();
-          self.insert(*key, task, expire);
+          let task = create();
+          self.insert(key, task, expire);
         }
       }
     }
-  }
-
-  pub fn get(&'a self, key: &K) -> Option<Ref<'a, K, ExpireOn<T>>> {
-    self.task.get(key)
-  }
-
-  pub fn get_mut(&'a self, key: &K) -> Option<RefMut<'a, K, ExpireOn<T>>> {
-    self.task.get_mut(key)
   }
 
   pub fn remove(&self, key: K) {
@@ -165,3 +162,16 @@ impl<'a, K: Key, T: Task<K>> Inner<K, T> {
     self.li[n as usize].insert(key);
   }
 }
+
+macro_rules! can_mut {
+  ($ref:ident,$get:ident) => {
+    impl<'a, K: Key, T: Task<K>> Inner<K, T> {
+      pub fn $get(&'a self, key: &K) -> Option<$ref<'a, K, ExpireOn<T>>> {
+        self.task.$get(key)
+      }
+    }
+  };
+}
+
+can_mut!(Ref, get);
+can_mut!(RefMut, get_mut);
