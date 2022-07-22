@@ -1,5 +1,6 @@
 use std::{
   cmp::Eq,
+  default::Default,
   fmt::Debug,
   hash::Hash,
   marker::Copy,
@@ -22,18 +23,18 @@ pub trait OnExpire<K> {
 }
 
 #[derive(Debug)]
-pub struct _Task<Task> {
+pub struct ExpireOn<Task> {
   expire_on: u8,
   task: Task,
 }
 
-impl<Task> DerefMut for _Task<Task> {
+impl<Task> DerefMut for ExpireOn<Task> {
   fn deref_mut(&mut self) -> &mut <Self as Deref>::Target {
     &mut self.task
   }
 }
 
-impl<Task> Deref for _Task<Task> {
+impl<Task> Deref for ExpireOn<Task> {
   type Target = Task;
   fn deref(&self) -> &Self::Target {
     &self.task
@@ -48,7 +49,7 @@ const SIZE: usize = u8::MAX as usize + 1;
 #[derive(Debug)]
 pub struct Inner<K: Key, T: Task<K>> {
   li: [DashSet<K>; SIZE],
-  task: DashMap<K, _Task<T>>,
+  task: DashMap<K, ExpireOn<T>>,
   n: AtomicU8,
 }
 
@@ -118,11 +119,23 @@ impl<'a, K: Key, T: Task<K>> Inner<K, T> {
     li.clear();
   }
 
-  pub fn get(&'a self, key: &K) -> Option<Ref<'a, K, _Task<T>>> {
+  pub fn get_or_create(&'a self, key: &K, create: impl Fn() -> (T, u8)) -> Ref<'a, K, ExpireOn<T>> {
+    loop {
+      match self.task.get(key) {
+        Some(r) => return r,
+        None => {
+          let (task, expire) = create();
+          self.insert(*key, task, expire);
+        }
+      }
+    }
+  }
+
+  pub fn get(&'a self, key: &K) -> Option<Ref<'a, K, ExpireOn<T>>> {
     self.task.get(key)
   }
 
-  pub fn get_mut(&'a self, key: &K) -> Option<RefMut<'a, K, _Task<T>>> {
+  pub fn get_mut(&'a self, key: &K) -> Option<RefMut<'a, K, ExpireOn<T>>> {
     self.task.get_mut(key)
   }
 
@@ -133,7 +146,7 @@ impl<'a, K: Key, T: Task<K>> Inner<K, T> {
     }
   }
 
-  pub fn renew(&'a self, key: K, expire: u8) -> Option<RefMut<'a, K, _Task<T>>> {
+  pub fn renew(&'a self, key: K, expire: u8) -> Option<RefMut<'a, K, ExpireOn<T>>> {
     let mut r = self.task.get_mut(&key);
     if let Some(ref mut r) = r {
       let n = self.n.load(Relaxed).wrapping_add(expire);
@@ -148,7 +161,7 @@ impl<'a, K: Key, T: Task<K>> Inner<K, T> {
 
   pub fn insert(&self, key: K, task: T, expire: u8) {
     let n = self.n.load(Relaxed).wrapping_add(expire);
-    self.task.insert(key, _Task { expire_on: n, task });
+    self.task.insert(key, ExpireOn { expire_on: n, task });
     self.li[n as usize].insert(key);
   }
 }
