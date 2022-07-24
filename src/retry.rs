@@ -5,7 +5,7 @@ use crate::{expire_map::Key, ExpireMap, OnExpire};
 pub trait Caller<Ctx, K> {
   /// Time-To-Live
   fn ttl() -> u8;
-  fn call(&mut self, ctx: &Ctx, key: &K);
+  fn call(&mut self, ctx: &Ctx, key: &K) -> u8;
   fn fail(&mut self, ctx: &Ctx, key: &K);
 }
 
@@ -23,8 +23,7 @@ impl<Ctx, K, C: Caller<Ctx, K>> OnExpire<Ctx, K> for Retry<C> {
       0
     } else {
       self.n = n;
-      self.caller.call(ctx, key);
-      C::ttl()
+      self.caller.call(ctx, key)
     }
   }
 }

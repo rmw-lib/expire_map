@@ -39,10 +39,10 @@ impl Ctx {
 
 impl Caller<Ctx, Task> for Msg {
   fn ttl() -> u8 {
-    2 // 2 seconds timeout
+    2 // expire after 2 seconds
   }
 
-  fn call(&mut self, ctx: &Ctx, task: &Task) {
+  fn call(&mut self, ctx: &Ctx, task: &Task) -> u8 {
     let cmd = format!("{} {}#{} {:?}", "call", task.addr, task.id, &self.msg);
     if let Err(err) = ctx.udp.send_to(
       &[&task.id.to_le_bytes()[..], &self.msg[..]].concat(),
@@ -51,6 +51,7 @@ impl Caller<Ctx, Task> for Msg {
       dbg!(err);
     }
     dbg!(cmd);
+    Self::ttl()
   }
 
   fn fail(&mut self, ctx: &Ctx, task: &Task) {

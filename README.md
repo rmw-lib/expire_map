@@ -66,10 +66,10 @@ impl Ctx {
 
 impl Caller<Ctx, Task> for Msg {
   fn ttl() -> u8 {
-    2 // 2 seconds timeout
+    2 // expire after 2 seconds
   }
 
-  fn call(&mut self, ctx: &Ctx, task: &Task) {
+  fn call(&mut self, ctx: &Ctx, task: &Task) -> u8 {
     let cmd = format!("{} {}#{} {:?}", "call", task.addr, task.id, &self.msg);
     if let Err(err) = ctx.udp.send_to(
       &[&task.id.to_le_bytes()[..], &self.msg[..]].concat(),
@@ -78,6 +78,7 @@ impl Caller<Ctx, Task> for Msg {
       dbg!(err);
     }
     dbg!(cmd);
+    Self::ttl()
   }
 
   fn fail(&mut self, ctx: &Ctx, task: &Task) {
@@ -173,7 +174,7 @@ use crate::{expire_map::Key, ExpireMap, OnExpire};
 pub trait Caller<Ctx, K> {
   /// Time-To-Live
   fn ttl() -> u8;
-  fn call(&mut self, ctx: &Ctx, key: &K);
+  fn call(&mut self, ctx: &Ctx, key: &K) -> u8;
   fn fail(&mut self, ctx: &Ctx, key: &K);
 }
 
@@ -191,8 +192,7 @@ impl<Ctx, K, C: Caller<Ctx, K>> OnExpire<Ctx, K> for Retry<C> {
       0
     } else {
       self.n = n;
-      self.caller.call(ctx, key);
-      C::ttl()
+      self.caller.call(ctx, key)
     }
   }
 }
@@ -299,10 +299,10 @@ impl Ctx {
 
 impl Caller<Ctx, Task> for Msg {
   fn ttl() -> u8 {
-    2 // 2 seconds timeout
+    2 // expire after 2 seconds
   }
 
-  fn call(&mut self, ctx: &Ctx, task: &Task) {
+  fn call(&mut self, ctx: &Ctx, task: &Task) -> u8 {
     let cmd = format!("{} {}#{} {:?}", "call", task.addr, task.id, &self.msg);
     if let Err(err) = ctx.udp.send_to(
       &[&task.id.to_le_bytes()[..], &self.msg[..]].concat(),
@@ -311,6 +311,7 @@ impl Caller<Ctx, Task> for Msg {
       dbg!(err);
     }
     dbg!(cmd);
+    Self::ttl()
   }
 
   fn fail(&mut self, ctx: &Ctx, task: &Task) {
@@ -406,7 +407,7 @@ use crate::{expire_map::Key, ExpireMap, OnExpire};
 pub trait Caller<Ctx, K> {
   /// Time-To-Live
   fn ttl() -> u8;
-  fn call(&mut self, ctx: &Ctx, key: &K);
+  fn call(&mut self, ctx: &Ctx, key: &K) -> u8;
   fn fail(&mut self, ctx: &Ctx, key: &K);
 }
 
@@ -424,8 +425,7 @@ impl<Ctx, K, C: Caller<Ctx, K>> OnExpire<Ctx, K> for Retry<C> {
       0
     } else {
       self.n = n;
-      self.caller.call(ctx, key);
-      C::ttl()
+      self.caller.call(ctx, key)
     }
   }
 }
