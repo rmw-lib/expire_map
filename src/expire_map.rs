@@ -132,6 +132,10 @@ impl<'a, Ctx, K: Key, T: Task<Ctx, K>> Inner<Ctx, K, T> {
     }
   }
 
+  pub fn has(&'a self, key: K) -> bool {
+    self.task.get(&key).is_some()
+  }
+
   pub fn renew(&'a self, key: K, expire: u8) -> Option<RefMut<'a, K, ExpireOn<T>>> {
     let mut r = self.task.get_mut(&key);
     if let Some(ref mut r) = r {
