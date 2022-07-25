@@ -126,11 +126,9 @@ impl<'a, Ctx, K: Key, T: Task<Ctx, K>> Inner<Ctx, K, T> {
   }
 
   pub fn remove(&self, key: K) -> Option<T> {
-    if let Some(t) = self.task.get(&key) {
-      self.li[t.expire_on as usize].remove(&key);
-      if let Some((_, v)) = self.task.remove(&key) {
-        return Some(v.task);
-      }
+    if let Some((_, v)) = self.task.remove(&key) {
+      self.li[v.expire_on as usize].remove(&key);
+      return Some(v.task);
     }
     None
   }
