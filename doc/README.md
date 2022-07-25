@@ -213,6 +213,13 @@ impl<Ctx, K: Key, C: Task<Ctx, K>> RetryMap<Ctx, K, C> {
       expire: ExpireMap::new(ctx),
     }
   }
+  pub fn remove(&self, key: K) -> Option<C> {
+    if let Some(r) = self.expire.remove(key) {
+      Some(r.caller)
+    } else {
+      None
+    }
+  }
 
   pub fn insert(&self, key: K, mut caller: C, retry: u8) {
     caller.call(&self.ctx, &key);
@@ -438,6 +445,13 @@ impl<Ctx, K: Key, C: Task<Ctx, K>> RetryMap<Ctx, K, C> {
   pub fn new(ctx: Ctx) -> Self {
     Self {
       expire: ExpireMap::new(ctx),
+    }
+  }
+  pub fn remove(&self, key: K) -> Option<C> {
+    if let Some(r) = self.expire.remove(key) {
+      Some(r.caller)
+    } else {
+      None
     }
   }
 
