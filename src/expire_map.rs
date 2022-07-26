@@ -88,6 +88,10 @@ impl<'a, Ctx, K: Key, T: Task<Ctx, K>> Inner<Ctx, K, T> {
     }
   }
 
+  pub fn len(&self) -> usize {
+    self.task.len()
+  }
+
   pub fn do_expire(&self) {
     let n = self.n.fetch_add(1, Relaxed);
     let li = &self.li[n as usize];
